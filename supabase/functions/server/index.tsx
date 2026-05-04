@@ -1,7 +1,13 @@
+// @ts-ignore
 import { Hono } from "npm:hono";
+// @ts-ignore
 import { cors } from "npm:hono/cors";
+// @ts-ignore
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
+
+// @ts-ignore
+declare const Deno: any;
 const app = new Hono();
 
 // Enable logger
@@ -20,12 +26,12 @@ app.use(
 );
 
 // Health check endpoint
-app.get("/make-server-a748bb9b/health", (c) => {
+app.get("/make-server-a748bb9b/health", (c: any) => {
   return c.json({ status: "ok" });
 });
 
 // Get all inventory items
-app.get("/make-server-a748bb9b/inventory", async (c) => {
+app.get("/make-server-a748bb9b/inventory", async (c: any) => {
   try {
     const items = await kv.getByPrefix("inventory:");
     return c.json({ success: true, data: items });
@@ -36,7 +42,7 @@ app.get("/make-server-a748bb9b/inventory", async (c) => {
 });
 
 // Create new inventory item
-app.post("/make-server-a748bb9b/inventory", async (c) => {
+app.post("/make-server-a748bb9b/inventory", async (c: any) => {
   try {
     const body = await c.req.json();
     const itemId = `inventory:${body.batchId}`;
@@ -65,7 +71,7 @@ app.post("/make-server-a748bb9b/inventory", async (c) => {
 });
 
 // Update inventory item
-app.put("/make-server-a748bb9b/inventory/:batchId", async (c) => {
+app.put("/make-server-a748bb9b/inventory/:batchId", async (c: any) => {
   try {
     const batchId = c.req.param("batchId");
     const body = await c.req.json();
@@ -97,7 +103,7 @@ app.put("/make-server-a748bb9b/inventory/:batchId", async (c) => {
 });
 
 // Delete inventory item
-app.delete("/make-server-a748bb9b/inventory/:batchId", async (c) => {
+app.delete("/make-server-a748bb9b/inventory/:batchId", async (c: any) => {
   try {
     const batchId = c.req.param("batchId");
     const itemId = `inventory:${batchId}`;
