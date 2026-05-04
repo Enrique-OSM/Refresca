@@ -5,6 +5,7 @@ import { Dashboard } from "./components/Dashboard";
 import { Inventory } from "./components/Inventory";
 import { ProductEntry } from "./components/ProductEntry";
 import { Reports } from "./components/Reports";
+import { Toaster } from "sonner";
 
 type Tab = "dashboard" | "inventory" | "entry" | "reports";
 
@@ -20,6 +21,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      <Toaster position="top-right" richColors />
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

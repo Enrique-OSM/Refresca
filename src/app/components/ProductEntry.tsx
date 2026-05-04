@@ -1,6 +1,8 @@
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Package, Calendar, TrendingUp, Save, X } from "lucide-react";
+import { inventoryAPI } from "../../utils/api";
+import { toast } from "sonner";
 
 export function ProductEntry() {
   const [formData, setFormData] = useState({
@@ -11,19 +13,42 @@ export function ProductEntry() {
     expiry: "",
     salesPace: "medium",
   });
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Reset form
-    setFormData({
-      batchId: "",
-      product: "",
-      stock: "",
-      cost: "",
-      expiry: "",
-      salesPace: "medium",
-    });
+    setSubmitting(true);
+
+    try {
+      const response = await inventoryAPI.create({
+        batchId: formData.batchId,
+        product: formData.product,
+        stock: parseInt(formData.stock),
+        cost: parseFloat(formData.cost),
+        expiry: formData.expiry,
+        salesPace: formData.salesPace as "high" | "medium" | "low",
+      });
+
+      if (response.success) {
+        toast.success("Producto agregado exitosamente al inventario");
+        // Reset form
+        setFormData({
+          batchId: "",
+          product: "",
+          stock: "",
+          cost: "",
+          expiry: "",
+          salesPace: "medium",
+        });
+      } else {
+        toast.error(`Error: ${response.error || "No se pudo agregar el producto"}`);
+      }
+    } catch (error) {
+      console.error("Error submitting product:", error);
+      toast.error("Error al conectar con el servidor");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -176,15 +201,17 @@ export function ProductEntry() {
           <div className="flex items-center gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity"
+              disabled={submitting}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               <Save className="w-5 h-5" />
-              <span>Save Product Batch</span>
+              <span>{submitting ? "Guardando..." : "Save Product Batch"}</span>
             </button>
             <button
               type="button"
               onClick={handleReset}
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+              disabled={submitting}
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <X className="w-5 h-5" />
               <span>Reset</span>

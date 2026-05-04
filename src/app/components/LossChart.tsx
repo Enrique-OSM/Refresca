@@ -37,17 +37,20 @@ export function LossChart() {
 
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={mockData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+          <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E5E7EB" />
           <XAxis
+            key="x-axis"
             dataKey="date"
             stroke="#6B7280"
             style={{ fontSize: "12px", fontFamily: "var(--font-mono)" }}
           />
           <YAxis
+            key="y-axis"
             stroke="#6B7280"
             style={{ fontSize: "12px", fontFamily: "var(--font-mono)" }}
           />
           <Tooltip
+            key="tooltip"
             contentStyle={{
               backgroundColor: "white",
               border: "1px solid #E5E7EB",
@@ -56,27 +59,30 @@ export function LossChart() {
             }}
           />
           <Line
-            key="saved-line"
+            key="line-saved"
             type="monotone"
             dataKey="saved"
+            name="Food Saved"
             stroke="var(--fresh-green)"
             strokeWidth={3}
             dot={{ fill: "var(--fresh-green)", r: 4 }}
             activeDot={{ r: 6 }}
           />
           <Line
-            key="waste-line"
+            key="line-waste"
             type="monotone"
             dataKey="waste"
+            name="Waste"
             stroke="var(--expired-red)"
             strokeWidth={3}
             dot={{ fill: "var(--expired-red)", r: 4 }}
             activeDot={{ r: 6 }}
           />
           <Line
-            key="target-line"
+            key="line-target"
             type="monotone"
             dataKey="target"
+            name="Target"
             stroke="#D1D5DB"
             strokeWidth={2}
             strokeDasharray="5 5"

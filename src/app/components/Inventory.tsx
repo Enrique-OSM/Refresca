@@ -2,7 +2,9 @@ import { motion } from "motion/react";
 import { Search, Filter, Download, RefreshCw } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { FreshnessGauge } from "./FreshnessGauge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { inventoryAPI } from "../../utils/api";
+import { toast } from "sonner";
 
 interface InventoryItem {
   id: string;
@@ -16,90 +18,30 @@ interface InventoryItem {
   salesPace: "high" | "medium" | "low";
 }
 
-const mockInventory: InventoryItem[] = [
-  {
-    id: "1",
-    batchId: "BTH-102",
-    product: "Organic Strawberries",
-    stock: 45,
-    cost: 6.5,
-    expiry: "2026-04-17",
-    daysLeft: 3,
-    status: "flash",
-    salesPace: "medium",
-  },
-  {
-    id: "2",
-    batchId: "BTH-156",
-    product: "Fresh Pineapples",
-    stock: 28,
-    cost: 4.2,
-    expiry: "2026-04-19",
-    daysLeft: 5,
-    status: "internal",
-    salesPace: "low",
-  },
-  {
-    id: "3",
-    batchId: "BTH-189",
-    product: "Red Apples",
-    stock: 120,
-    cost: 2.8,
-    expiry: "2026-04-25",
-    daysLeft: 11,
-    status: "fresh",
-    salesPace: "high",
-  },
-  {
-    id: "4",
-    batchId: "BTH-089",
-    product: "Bananas",
-    stock: 15,
-    cost: 1.5,
-    expiry: "2026-04-15",
-    daysLeft: 1,
-    status: "donate",
-    salesPace: "low",
-  },
-  {
-    id: "5",
-    batchId: "BTH-078",
-    product: "Mangoes",
-    stock: 8,
-    cost: 5.2,
-    expiry: "2026-04-13",
-    daysLeft: -1,
-    status: "expired",
-    salesPace: "low",
-  },
-  {
-    id: "6",
-    batchId: "BTH-201",
-    product: "Green Grapes",
-    stock: 62,
-    cost: 3.9,
-    expiry: "2026-04-22",
-    daysLeft: 8,
-    status: "fresh",
-    salesPace: "medium",
-  },
-  {
-    id: "7",
-    batchId: "BTH-145",
-    product: "Watermelon",
-    stock: 18,
-    cost: 8.5,
-    expiry: "2026-04-16",
-    daysLeft: 2,
-    status: "flash",
-    salesPace: "medium",
-  },
-];
-
 export function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredInventory = mockInventory.filter(
+  const fetchInventory = async () => {
+    setLoading(true);
+    const response = await inventoryAPI.getAll();
+
+    if (response.success && response.data) {
+      setInventory(response.data);
+    } else {
+      console.error("Error loading inventory:", response.error);
+      toast.error("Error al cargar el inventario");
+      setInventory([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
+
+  const filteredInventory = inventory.filter(
     (item) =>
       item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.batchId.toLowerCase().includes(searchTerm.toLowerCase())
@@ -134,8 +76,12 @@ export function Inventory() {
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity">
-              <RefreshCw className="w-4 h-4" />
+            <button
+              onClick={fetchInventory}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               <span>Sync</span>
             </button>
           </div>
@@ -144,8 +90,19 @@ export function Inventory() {
 
       {/* Inventory Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-[var(--fresh-green)]" />
+            <span className="ml-3 text-gray-600">Cargando inventario...</span>
+          </div>
+        ) : filteredInventory.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-gray-500 mb-4">No hay productos en el inventario</p>
+            <p className="text-sm text-gray-400">Agrega productos usando el formulario "Add Product"</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs uppercase tracking-wider text-gray-700">
@@ -231,6 +188,7 @@ export function Inventory() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </motion.div>
   );
