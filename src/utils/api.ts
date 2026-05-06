@@ -170,3 +170,56 @@ export const inventoryAPI = {
     }
   },
 };
+
+export interface DashboardKPIs {
+  foodSavedKg: number;
+  economicLossPrevented: number;
+  activeFlashSales: number;
+  pendingDonations: number;
+}
+
+export const dashboardAPI = {
+  getKPIs: async (userId: number = 1): Promise<ApiResponse<DashboardKPIs>> => {
+    try {
+      // 1. Get user data
+      const { data: userData, error: userError } = await supabase
+        .from('Usuarios')
+        .select('comida_salvada_g, dinero_salvado')
+        .eq('id', userId)
+        .single();
+      
+      if (userError && userError.code !== 'PGRST116') throw userError;
+
+      // 2. Get Flash Sales count
+      const { count: flashSalesCount, error: flashSalesError } = await supabase
+        .from('Productos')
+        .select('*', { count: 'exact', head: true })
+        .eq('Pertenece_a', userId)
+        .eq('Estatus', 'FLASHSALE');
+
+      if (flashSalesError) throw flashSalesError;
+
+      // 3. Get Pending Donations count
+      const { count: donationsCount, error: donationsError } = await supabase
+        .from('Productos')
+        .select('*', { count: 'exact', head: true })
+        .eq('Pertenece_a', userId)
+        .eq('Estatus', 'DONATE');
+
+      if (donationsError) throw donationsError;
+
+      return {
+        success: true,
+        data: {
+          foodSavedKg: userData ? (userData.comida_salvada_g || 0) / 1000 : 0,
+          economicLossPrevented: userData ? userData.dinero_salvado || 0 : 0,
+          activeFlashSales: flashSalesCount || 0,
+          pendingDonations: donationsCount || 0,
+        }
+      };
+    } catch (error: any) {
+      console.error('Error fetching dashboard KPIs:', error);
+      return { success: false, error: error.message };
+    }
+  }
+};

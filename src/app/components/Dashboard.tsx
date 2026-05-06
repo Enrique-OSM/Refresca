@@ -1,44 +1,60 @@
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { KPICard } from "./KPICard";
 import { ActivityFeed } from "./ActivityFeed";
 import { LossChart } from "./LossChart";
-import { TrendingDown, DollarSign, Zap, Heart } from "lucide-react";
+import { TrendingDown, DollarSign, Zap, Heart, Loader2 } from "lucide-react";
+import { dashboardAPI, DashboardKPIs } from "../../utils/api";
 
 export function Dashboard() {
+  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchKPIs = async () => {
+      const response = await dashboardAPI.getKPIs();
+      if (response.success && response.data) {
+        setKpis(response.data);
+      }
+      setLoading(false);
+    };
+    fetchKPIs();
+  }, []);
+
   const kpiData = [
     {
       title: "Food Saved",
-      value: "1,247",
+      value: kpis ? kpis.foodSavedKg.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "0",
       unit: "kg",
       change: "+12.3%",
-      trend: "up",
+      trend: "up" as const,
       icon: TrendingDown,
       color: "fresh" as const,
     },
     {
       title: "Economic Loss Prevented",
-      value: "$8,940",
+      value: kpis ? `$${kpis.economicLossPrevented.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$0.00",
       unit: "",
       change: "+8.7%",
-      trend: "up",
+      trend: "up" as const,
       icon: DollarSign,
       color: "donate" as const,
     },
     {
       title: "Active Flash Sales",
-      value: "23",
+      value: kpis ? kpis.activeFlashSales.toString() : "0",
       unit: "items",
       change: "+5",
-      trend: "up",
+      trend: "up" as const,
       icon: Zap,
       color: "flash" as const,
     },
     {
       title: "Pending Donations",
-      value: "12",
+      value: kpis ? kpis.pendingDonations.toString() : "0",
       unit: "batches",
       change: "-2",
-      trend: "down",
+      trend: "down" as const,
       icon: Heart,
       color: "internal" as const,
     },
@@ -47,12 +63,17 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       {/* KPI Grid */}
-      <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      {loading ? (
+        <div className="flex justify-center items-center h-32">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        </div>
+      ) : (
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
         {kpiData.map((kpi, index) => (
           <motion.div
             key={kpi.title}
@@ -64,6 +85,7 @@ export function Dashboard() {
           </motion.div>
         ))}
       </motion.div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
