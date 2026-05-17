@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 .env
+test*.mjs
+test_db.js
+test-schema.js
+test-supabase.js
+test-supabase.mjs
