@@ -133,7 +133,16 @@ export function Reports() {
                 <option value="quarterly">Quarterly</option>
               </select>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">
+            <button 
+              onClick={() => {
+                const testUserId = 1;
+                fetch(`https://wearingatouchdown-evg5hkhnaddyh2hf.eastus-01.azurewebsites.net/webhook-test/5beb5272-083f-46e4-9d4e-4348f728fb8d?userId=${testUserId}`, {
+                  method: 'GET',
+                  mode: 'no-cors'
+                }).catch(err => console.error('Error calling webhook:', err));
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+            >
               <Plus className="w-4 h-4" />
               <span>Create Report</span>
             </button>
