@@ -20,6 +20,8 @@ interface InventoryItem {
 
 export function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,10 +44,47 @@ export function Inventory() {
   }, []);
 
   const filteredInventory = inventory.filter(
-    (item) =>
-      item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.batchId.toLowerCase().includes(searchTerm.toLowerCase())
+    (item) => {
+      const matchesSearch = item.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            item.batchId.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = filterStatus === "all" || item.status === filterStatus;
+      return matchesSearch && matchesFilter;
+    }
   );
+
+  const handleExport = () => {
+    if (filteredInventory.length === 0) {
+      toast.error("No hay datos para exportar");
+      return;
+    }
+
+    const headers = ["Batch ID", "Product", "Stock", "Cost/Unit", "Expiry", "Days Left", "Status", "Sales Pace"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredInventory.map(item => 
+        [
+          item.batchId,
+          `"${item.product.replace(/"/g, '""')}"`, // Escape comillas para nombres con espacios/comas
+          item.stock,
+          item.cost.toFixed(2),
+          item.expiry,
+          item.daysLeft,
+          item.status,
+          item.salesPace
+        ].join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `inventory_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Inventario exportado con éxito");
+  };
 
   return (
     <motion.div
@@ -68,11 +107,39 @@ export function Inventory() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="w-4 h-4" />
-              <span>Filter</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="relative">
+              <button 
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                <span className="capitalize">Filter {filterStatus !== "all" && `(${filterStatus})`}</span>
+              </button>
+              
+              {isFilterOpen && (
+                <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1">
+                  <button 
+                    onClick={() => { setFilterStatus("all"); setIsFilterOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${filterStatus === "all" ? "font-medium bg-gray-50" : ""}`}
+                  >
+                    All Statuses
+                  </button>
+                  {["fresh", "flash", "internal", "donate", "expired"].map((status) => (
+                    <button 
+                      key={status}
+                      onClick={() => { setFilterStatus(status); setIsFilterOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 capitalize ${filterStatus === status ? "font-medium bg-gray-50" : ""}`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button 
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
