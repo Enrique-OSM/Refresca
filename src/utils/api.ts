@@ -279,7 +279,11 @@ export const dashboardAPI = {
 
       if (error) throw error;
 
-      const activities: Activity[] = data.map((row: any) => {
+      const latestData = data.length > 0 
+        ? data.filter((row: any) => row.created_at === data[0].created_at)
+        : [];
+
+      const activities: Activity[] = latestData.map((row: any) => {
         const batchId = row.Productos ? `BTH-${row.Productos.BATCH_ID}` : 'Unknown';
         let action = 'Status updated';
         if (row.estado_final === 'FLASHSALE') action = 'Moved to Flash Sale';
@@ -303,6 +307,64 @@ export const dashboardAPI = {
       return { success: true, data: activities };
     } catch (error: any) {
       console.error('Error fetching activities:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  getLossChartData: async (userId: number = 1): Promise<ApiResponse<{ date: string; waste: number; saved: number; target: number }[]>> => {
+    try {
+      const { data, error } = await supabase
+        .from('Movimientos')
+        .select(`
+          created_at,
+          estado_final,
+          Productos!inner (
+            Pertenece_a,
+            Stock_Actual
+          )
+        `)
+        .eq('Productos.Pertenece_a', userId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Group by date
+      const grouped: Record<string, { waste: number; saved: number }> = {};
+      
+      // Initialize last 7 days with 0
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        grouped[dateStr] = { waste: 0, saved: 0 };
+      }
+
+      data.forEach((row: any) => {
+        const d = new Date(row.created_at);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        if (grouped[dateStr]) {
+          const kg = row.Productos?.Stock_Actual || 0;
+          const isExpired = row.estado_final === 'EXPIRED' || row.estado_final === 'EXPIRED_WASTE' || row.estado_final === 'EXPIRED WASTE';
+          
+          if (isExpired) {
+            grouped[dateStr].waste += kg;
+          } else {
+            grouped[dateStr].saved += kg;
+          }
+        }
+      });
+
+      const chartData = Object.entries(grouped).map(([date, values]) => ({
+        date,
+        waste: values.waste,
+        saved: values.saved,
+        target: 60 // Keep static target for now
+      }));
+
+      return { success: true, data: chartData };
+    } catch (error: any) {
+      console.error('Error fetching loss chart data:', error);
       return { success: false, error: error.message };
     }
   }
