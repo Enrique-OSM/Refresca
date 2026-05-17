@@ -25,6 +25,19 @@ export interface Activity {
   reason: string;
 }
 
+export interface Report {
+  id: string;
+  title: string;
+  period: string;
+  generatedDate: string;
+  foodSaved: number;
+  lossPrevented: number;
+  wasteReduction: number;
+  status: "completed" | "processing" | string;
+  type: "weekly" | "monthly" | "quarterly" | string;
+  pdfUrl?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -290,6 +303,38 @@ export const dashboardAPI = {
       return { success: true, data: activities };
     } catch (error: any) {
       console.error('Error fetching activities:', error);
+      return { success: false, error: error.message };
+    }
+  }
+};
+
+export const reportsAPI = {
+  getAll: async (userId: number = 1): Promise<ApiResponse<Report[]>> => {
+    try {
+      const { data, error } = await supabase
+        .from('reportes')
+        .select('*')
+        .eq('usuario_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const reports: Report[] = data.map((row: any) => ({
+        id: `RPT-${row.id}`,
+        title: row.titulo || 'Untitled Report',
+        period: row.periodo || '',
+        generatedDate: row.fecha_generacion || '',
+        foodSaved: row.comida_rescatada || 0,
+        lossPrevented: parseFloat(row.perdida_evitada || '0'),
+        wasteReduction: row.reduccion_desperdicio || 0,
+        status: row.estado || 'completed',
+        type: row.tipo || 'weekly',
+        pdfUrl: row.pdf_url,
+      }));
+
+      return { success: true, data: reports };
+    } catch (error: any) {
+      console.error('Error fetching reports:', error);
       return { success: false, error: error.message };
     }
   }

@@ -1,92 +1,28 @@
 import { motion } from "motion/react";
-import { FileText, Download, Eye, Calendar, TrendingUp, Filter, Plus } from "lucide-react";
-import { useState } from "react";
-
-interface Report {
-  id: string;
-  title: string;
-  period: string;
-  generatedDate: string;
-  foodSaved: number;
-  lossPrevented: number;
-  wasteReduction: number;
-  status: "completed" | "processing";
-  type: "weekly" | "monthly" | "quarterly";
-}
-
-const mockReports: Report[] = [
-  {
-    id: "RPT-2026-15",
-    title: "Weekly Waste Prevention Report",
-    period: "Apr 7 - Apr 14, 2026",
-    generatedDate: "2026-04-14",
-    foodSaved: 1247,
-    lossPrevented: 8940,
-    wasteReduction: 67,
-    status: "completed",
-    type: "weekly",
-  },
-  {
-    id: "RPT-2026-14",
-    title: "Weekly Waste Prevention Report",
-    period: "Mar 31 - Apr 6, 2026",
-    generatedDate: "2026-04-06",
-    foodSaved: 1089,
-    lossPrevented: 7820,
-    wasteReduction: 58,
-    status: "completed",
-    type: "weekly",
-  },
-  {
-    id: "RPT-2026-Q1",
-    title: "Q1 Quarterly Impact Report",
-    period: "Jan 1 - Mar 31, 2026",
-    generatedDate: "2026-04-01",
-    foodSaved: 12456,
-    lossPrevented: 89340,
-    wasteReduction: 72,
-    status: "completed",
-    type: "quarterly",
-  },
-  {
-    id: "RPT-2026-03",
-    title: "Monthly Performance Report",
-    period: "March 2026",
-    generatedDate: "2026-04-01",
-    foodSaved: 4523,
-    lossPrevented: 32450,
-    wasteReduction: 64,
-    status: "completed",
-    type: "monthly",
-  },
-  {
-    id: "RPT-2026-13",
-    title: "Weekly Waste Prevention Report",
-    period: "Mar 24 - Mar 30, 2026",
-    generatedDate: "2026-03-30",
-    foodSaved: 1156,
-    lossPrevented: 8290,
-    wasteReduction: 61,
-    status: "completed",
-    type: "weekly",
-  },
-  {
-    id: "RPT-2026-02",
-    title: "Monthly Performance Report",
-    period: "February 2026",
-    generatedDate: "2026-03-01",
-    foodSaved: 3842,
-    lossPrevented: 27560,
-    wasteReduction: 69,
-    status: "completed",
-    type: "monthly",
-  },
-];
+import { FileText, Download, Eye, Calendar, TrendingUp, Filter, Plus, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { reportsAPI, Report } from "../../utils/api";
 
 export function Reports() {
   const [filterType, setFilterType] = useState<"all" | "weekly" | "monthly" | "quarterly">("all");
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const filteredReports = mockReports.filter(
+  useEffect(() => {
+    const fetchReports = async () => {
+      const response = await reportsAPI.getAll();
+      if (response.success && response.data) {
+        setReports(response.data);
+      } else {
+        setErrorMsg(response.error || "Failed to load reports");
+      }
+      setLoading(false);
+    };
+    fetchReports();
+  }, []);
+
+  const filteredReports = reports.filter(
     (report) => filterType === "all" || report.type === filterType
   );
 
@@ -190,7 +126,20 @@ export function Reports() {
       </div>
       {/* Reports Grid */}
       <div className="grid grid-cols-1 gap-4">
-        {filteredReports.map((report, index) => (
+        {loading ? (
+          <div className="flex justify-center items-center h-32 bg-white rounded-lg shadow-sm border border-gray-200">
+            <Loader2 className="w-8 h-8 animate-spin text-[var(--fresh-green)]" />
+          </div>
+        ) : errorMsg ? (
+          <div className="flex justify-center items-center h-32 bg-white rounded-lg shadow-sm border border-gray-200 text-red-500">
+            Error: {errorMsg}
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <div className="flex justify-center items-center h-32 bg-white rounded-lg shadow-sm border border-gray-200 text-gray-500">
+            No reports found
+          </div>
+        ) : (
+          filteredReports.map((report, index) => (
           <motion.div
             key={report.id}
             className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
@@ -280,7 +229,8 @@ export function Reports() {
               </div>
             </div>
           </motion.div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
