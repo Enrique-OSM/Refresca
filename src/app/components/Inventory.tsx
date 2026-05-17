@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { inventoryAPI } from "../../utils/api";
 import { toast } from "sonner";
 
+
 interface InventoryItem {
   id: string;
   batchId: string;
