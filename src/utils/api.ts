@@ -16,6 +16,15 @@ export interface InventoryItem {
   salesPace: "high" | "medium" | "low";
 }
 
+export interface Activity {
+  id: string;
+  batchId: string;
+  action: string;
+  status: "fresh" | "flash" | "internal" | "donate" | "expired";
+  timestamp: string;
+  reason: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -52,6 +61,20 @@ function calculateDaysLeft(expiryDate: string): number {
   const diffTime = expiry.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
+}
+
+function formatTimeAgo(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) return `just now`;
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days ago`;
 }
 
 function mapDatabaseRowToInventoryItem(row: any): InventoryItem {
@@ -219,6 +242,54 @@ export const dashboardAPI = {
       };
     } catch (error: any) {
       console.error('Error fetching dashboard KPIs:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  getActivities: async (userId: number = 1): Promise<ApiResponse<Activity[]>> => {
+    try {
+      const { data, error } = await supabase
+        .from('Movimientos')
+        .select(`
+          id,
+          created_at,
+          estado_inicial,
+          estado_final,
+          producto,
+          Productos (
+            BATCH_ID,
+            Pertenece_a
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      const activities: Activity[] = data.map((row: any) => {
+        const batchId = row.Productos ? `BTH-${row.Productos.BATCH_ID}` : 'Unknown';
+        let action = 'Status updated';
+        if (row.estado_final === 'FLASHSALE') action = 'Moved to Flash Sale';
+        else if (row.estado_final === 'DONATE') action = 'Donated to Food Bank';
+        else if (row.estado_final === 'INTERNALOFFER') action = 'Internal Offer Activated';
+        else if (row.estado_final === 'EXPIRED') action = 'Marked as Expired';
+        else if (row.estado_inicial && row.estado_final) {
+          action = `Changed from ${row.estado_inicial} to ${row.estado_final}`;
+        }
+
+        return {
+          id: String(row.id),
+          batchId,
+          action,
+          status: mapStatus(row.estado_final || 'ONCOUNTER'),
+          timestamp: formatTimeAgo(row.created_at),
+          reason: 'System update',
+        };
+      });
+
+      return { success: true, data: activities };
+    } catch (error: any) {
+      console.error('Error fetching activities:', error);
       return { success: false, error: error.message };
     }
   }
