@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { FileText, Download, Eye, Calendar, TrendingUp, Filter, Plus, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { reportsAPI, Report } from "../../utils/api";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 
 export function Reports() {
   const [filterType, setFilterType] = useState<"all" | "weekly" | "monthly" | "quarterly">("all");
@@ -25,6 +26,12 @@ export function Reports() {
   const filteredReports = reports.filter(
     (report) => filterType === "all" || report.type === filterType
   );
+
+  const totalFoodSaved = reports.reduce((sum, report) => sum + (report.foodSaved || 0), 0);
+  const totalEconomicImpact = reports.reduce((sum, report) => sum + (report.lossPrevented || 0), 0);
+  const avgWasteReduction = reports.length > 0 
+    ? Math.round(reports.reduce((sum, report) => sum + (report.wasteReduction || 0), 0) / reports.length) 
+    : 0;
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -90,21 +97,21 @@ export function Reports() {
         <h3 className="text-xl mb-4">SDG 12 Impact Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <p className="text-emerald-100 text-sm mb-1">Total Food Saved (2026)</p>
+            <p className="text-emerald-100 text-sm mb-1">Total Food Saved</p>
             <p
               className="text-3xl font-mono"
               style={{ fontFamily: "var(--font-mono)" }}
             >
-              24,313 <span className="text-lg">kg</span>
+              {totalFoodSaved.toLocaleString()} <span className="text-lg">kg</span>
             </p>
           </div>
           <div>
-            <p className="text-emerald-100 text-sm mb-1">Economic Impact (2026)</p>
+            <p className="text-emerald-100 text-sm mb-1">Economic Impact</p>
             <p
               className="text-3xl font-mono"
               style={{ fontFamily: "var(--font-mono)" }}
             >
-              $174,400
+              ${totalEconomicImpact.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div>
@@ -113,7 +120,7 @@ export function Reports() {
               className="text-3xl font-mono"
               style={{ fontFamily: "var(--font-mono)" }}
             >
-              65%
+              {avgWasteReduction}%
             </p>
           </div>
         </div>
@@ -218,14 +225,59 @@ export function Reports() {
 
               {/* Actions */}
               <div className="flex flex-col gap-2 lg:ml-4">
-                <button className="flex items-center justify-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity">
+                <button 
+                  onClick={() => report.pdfUrl && window.open(report.pdfUrl, '_blank')}
+                  disabled={!report.pdfUrl}
+                  title={!report.pdfUrl ? "PDF not available" : "Download PDF"}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Download className="w-4 h-4" />
                   <span>Download PDF</span>
                 </button>
-                <button className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Eye className="w-4 h-4" />
-                  <span>View Details</span>
-                </button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Eye className="w-4 h-4" />
+                      <span>View Details</span>
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>{report.title}</DialogTitle>
+                      <DialogDescription>
+                        {report.id} • {report.period}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 items-center gap-4 border-b border-gray-100 pb-4">
+                        <span className="font-medium text-gray-500 text-sm">Status</span>
+                        <span className={`capitalize ${report.status === 'completed' ? 'text-[var(--fresh-green)] font-medium' : 'text-amber-500 font-medium'}`}>
+                          {report.status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4 border-b border-gray-100 pb-4">
+                        <span className="font-medium text-gray-500 text-sm">Type</span>
+                        <span className="capitalize">{report.type}</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4 border-b border-gray-100 pb-4">
+                        <span className="font-medium text-gray-500 text-sm">Generated</span>
+                        <span>{report.generatedDate}</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4 border-b border-gray-100 pb-4">
+                        <span className="font-medium text-gray-500 text-sm">Food Saved</span>
+                        <span className="font-mono text-gray-900">{report.foodSaved.toLocaleString()} kg</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4 border-b border-gray-100 pb-4">
+                        <span className="font-medium text-gray-500 text-sm">Loss Prevented</span>
+                        <span className="font-mono text-gray-900">${report.lossPrevented.toLocaleString()}</span>
+                      </div>
+                      <div className="grid grid-cols-2 items-center gap-4">
+                        <span className="font-medium text-gray-500 text-sm">Waste Reduction</span>
+                        <span className="font-mono text-[var(--fresh-green)]">{report.wasteReduction}%</span>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </motion.div>
