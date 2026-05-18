@@ -9,6 +9,7 @@ export function Reports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -78,16 +79,32 @@ export function Reports() {
             </div>
             <button 
               onClick={() => {
+                if (isGeneratingReport) return;
+                setIsGeneratingReport(true);
                 const testUserId = 1;
-                fetch(`https://wearingatouchdown-evg5hkhnaddyh2hf.eastus-01.azurewebsites.net/webhook-test/5beb5272-083f-46e4-9d4e-4348f728fb8d?userId=${testUserId}`, {
+                fetch(`https://wearingatouchdown-evg5hkhnaddyh2hf.eastus-01.azurewebsites.net/webhook/5beb5272-083f-46e4-9d4e-4348f728fb8d?userId=${testUserId}`, {
                   method: 'GET',
                   mode: 'no-cors'
                 }).catch(err => console.error('Error calling webhook:', err));
+                
+                setTimeout(() => {
+                  window.location.reload();
+                }, 12000);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--fresh-green)] text-white rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isGeneratingReport}
             >
-              <Plus className="w-4 h-4" />
-              <span>Create Report</span>
+              {isGeneratingReport ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generando...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  <span>Create Report</span>
+                </>
+              )}
             </button>
           </div>
         </div>
