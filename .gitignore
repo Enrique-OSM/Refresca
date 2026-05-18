@@ -6,3 +6,5 @@ test_db.js
 test-schema.js
 test-supabase.js
 test-supabase.mjs
+dist/
+dist-ssr/
